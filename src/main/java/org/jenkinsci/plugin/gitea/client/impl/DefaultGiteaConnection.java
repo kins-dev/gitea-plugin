@@ -46,6 +46,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
 import javax.net.ssl.HttpsURLConnection;
 import jenkins.model.Jenkins;
 import org.apache.commons.codec.binary.Base64;
@@ -213,7 +214,7 @@ class DefaultGiteaConnection implements GiteaConnection {
 
     @Override
     public List<GiteaRepository> fetchCurrentUserRepositories() throws IOException, InterruptedException {
-        List<GiteaRepository> repos = Collections.<GiteaRepository>emptyList();
+        List<GiteaRepository> repos = new ArrayList<GiteaRepository>();
         for (int page = 2; true; page++){
             List<GiteaRepository> temp = getList(
                     api()
@@ -234,7 +235,7 @@ class DefaultGiteaConnection implements GiteaConnection {
 
     @Override
     public List<GiteaRepository> fetchRepositories(String username) throws IOException, InterruptedException {
-        List<GiteaRepository> repos = Collections.<GiteaRepository>emptyList();
+        List<GiteaRepository> repos = new ArrayList<GiteaRepository>();
         for (int page = 1; true; page++){
             List<GiteaRepository> temp = getList(
                     api()
@@ -266,7 +267,7 @@ class DefaultGiteaConnection implements GiteaConnection {
 
     @Override
     public List<GiteaRepository> fetchOrganizationRepositories(GiteaOwner owner) throws IOException, InterruptedException {
-        List<GiteaRepository> repos = Collections.<GiteaRepository>emptyList();
+        List<GiteaRepository> repos = new ArrayList<GiteaRepository>();
         for (int page = 1;true; page++){
             List<GiteaRepository> temp = getList(
                     api()
@@ -320,7 +321,7 @@ class DefaultGiteaConnection implements GiteaConnection {
 
     @Override
     public List<GiteaBranch> fetchBranches(String username, String name) throws IOException, InterruptedException {
-        List<GiteaBranch> branches = Collections.<GiteaBranch>emptyList();;
+        List<GiteaBranch> branches = new ArrayList<GiteaBranch>();
         for (int page = 1; true; page++){
             List<GiteaBranch> temp = getList(
                     api()
@@ -373,17 +374,27 @@ class DefaultGiteaConnection implements GiteaConnection {
 
     @Override
     public List<GiteaTag> fetchTags(String username, String name) throws IOException, InterruptedException {
-        return getList(
-                api()
-                        .literal("/repos")
-                        .path(UriTemplateBuilder.var("username"))
-                        .path(UriTemplateBuilder.var("name"))
-                        .literal("/tags")
-                        .build()
-                        .set("username", username)
-                        .set("name", name),
-                GiteaTag.class
-        );
+        List<GiteaTag> tags = new ArrayList<GiteaTag>();
+        for (int page = 1; true; page++){
+            List<GiteaTag> temp = getList(
+                    api()
+                            .literal("/repos")
+                            .path(UriTemplateBuilder.var("username"))
+                            .path(UriTemplateBuilder.var("name"))
+                            .literal("/tags")
+                            .query(UriTemplateBuilder.var("page"))
+                            .build()
+                            .set("username", username)
+                            .set("name", name)
+                            .set("page", page),
+                    GiteaTag.class
+            );
+            if(temp.size()>0){
+                tags.addAll(temp);
+            }else{
+                return tags;
+            }
+        }
     }
 
     @Override
@@ -417,17 +428,27 @@ class DefaultGiteaConnection implements GiteaConnection {
 
     @Override
     public List<GiteaUser> fetchCollaborators(String username, String name) throws IOException, InterruptedException {
-        return getList(
-                api()
-                        .literal("/repos")
-                        .path(UriTemplateBuilder.var("username"))
-                        .path(UriTemplateBuilder.var("name"))
-                        .literal("/collaborators")
-                        .build()
-                        .set("username", username)
-                        .set("name", name),
-                GiteaUser.class
-        );
+        List<GiteaUser> users = new ArrayList<GiteaUser>();
+        for (int page = 1; true; page++){
+            List<GiteaUser> temp = getList(
+                    api()
+                            .literal("/repos")
+                            .path(UriTemplateBuilder.var("username"))
+                            .path(UriTemplateBuilder.var("name"))
+                            .literal("/collaborators")
+                            .query(UriTemplateBuilder.var("page"))
+                            .build()
+                            .set("username", username)
+                            .set("name", name)
+                            .set("page", page),
+                            GiteaUser.class
+            );
+            if(temp.size()>0){
+                users.addAll(temp);
+            }else{
+                return users;
+            }
+        }
     }
 
     @Override
@@ -460,28 +481,30 @@ class DefaultGiteaConnection implements GiteaConnection {
 
     @Override
     public List<GiteaHook> fetchHooks(String organizationName) throws IOException, InterruptedException {
-        return getList(
-                api()
-                        .literal("/orgs")
-                        .path(UriTemplateBuilder.var("name"))
-                        .literal("/hooks")
-                        .build()
-                        .set("name", organizationName),
-                GiteaHook.class
-        );
+        List<GiteaHook> hooks = new ArrayList<GiteaHook>();
+        for (int page = 1; true; page++){
+            List<GiteaHook> temp = getList(
+                    api()
+                            .literal("/orgs")
+                            .path(UriTemplateBuilder.var("name"))
+                            .literal("/hooks")
+                            .query(UriTemplateBuilder.var("page"))
+                            .build()
+                            .set("name", organizationName)
+                            .set("page", page),
+                            GiteaHook.class
+            );
+            if(temp.size()>0){
+                hooks.addAll(temp);
+            }else{
+                return hooks;
+            }
+        }
     }
 
     @Override
     public List<GiteaHook> fetchHooks(GiteaOrganization organization) throws IOException, InterruptedException {
-        return getList(
-                api()
-                        .literal("/orgs")
-                        .path(UriTemplateBuilder.var("name"))
-                        .literal("/hooks")
-                        .build()
-                        .set("name", organization.getUsername()),
-                GiteaHook.class
-        );
+        return fetchHooks(organization.getUsername());
     }
 
     @Override
@@ -521,17 +544,27 @@ class DefaultGiteaConnection implements GiteaConnection {
 
     @Override
     public List<GiteaHook> fetchHooks(String username, String name) throws IOException, InterruptedException {
-        return getList(
-                api()
-                        .literal("/repos")
-                        .path(UriTemplateBuilder.var("username"))
-                        .path(UriTemplateBuilder.var("name"))
-                        .literal("/hooks")
-                        .build()
-                        .set("username", username)
-                        .set("name", name),
-                GiteaHook.class
-        );
+        List<GiteaHook> hooks = new ArrayList<GiteaHook>();
+        for (int page = 1; true; page++){
+            List<GiteaHook> temp = getList(
+                    api()
+                            .literal("/repos")
+                            .path(UriTemplateBuilder.var("username"))
+                            .path(UriTemplateBuilder.var("name"))
+                            .literal("/hooks")
+                            .query(UriTemplateBuilder.var("page"))
+                            .build()
+                            .set("username", username)
+                            .set("name", name)
+                            .set("page", page),
+                            GiteaHook.class
+            );
+            if(temp.size()>0){
+                hooks.addAll(temp);
+            }else{
+                return hooks;
+            }
+        }
     }
 
     @Override
@@ -616,19 +649,29 @@ class DefaultGiteaConnection implements GiteaConnection {
     @Override
     public List<GiteaCommitStatus> fetchCommitStatuses(GiteaRepository repository, String sha)
             throws IOException, InterruptedException {
-        return getList(
-                api()
-                        .literal("/repos")
-                        .path(UriTemplateBuilder.var("username"))
-                        .path(UriTemplateBuilder.var("name"))
-                        .literal("/statuses")
-                        .path(UriTemplateBuilder.var("sha"))
-                        .build()
-                        .set("username", repository.getOwner().getUsername())
-                        .set("name", repository.getName())
-                        .set("sha", sha),
-                GiteaCommitStatus.class
-        );
+        List<GiteaCommitStatus> status = new ArrayList<GiteaCommitStatus>();
+        for (int page = 1; true; page++){
+            List<GiteaCommitStatus> temp = getList(
+                    api()
+                            .literal("/repos")
+                            .path(UriTemplateBuilder.var("username"))
+                            .path(UriTemplateBuilder.var("name"))
+                            .literal("/statuses")
+                            .path(UriTemplateBuilder.var("sha"))
+                            .query(UriTemplateBuilder.var("page"))
+                            .build()
+                            .set("username", repository.getOwner().getUsername())
+                            .set("name", repository.getName())
+                            .set("sha", sha)
+                            .set("page", page),
+                            GiteaCommitStatus.class
+            );
+            if(temp.size()>0){
+                status.addAll(temp);
+            }else{
+                return status;
+            }
+        }
     }
 
     @Override
@@ -702,19 +745,28 @@ class DefaultGiteaConnection implements GiteaConnection {
             }
         }
         try {
-            return getList(
-                    api()
-                            .literal("/repos")
-                            .path(UriTemplateBuilder.var("username"))
-                            .path(UriTemplateBuilder.var("name"))
-                            .literal("/pulls")
-                            .query(UriTemplateBuilder.var("state"))
-                            .build()
-                            .set("username", username)
-                            .set("name", name)
-                            .set("state", state),
-                    GiteaPullRequest.class
-            );
+            List<GiteaPullRequest> requests = new ArrayList<GiteaPullRequest>();
+            for (int page = 1; true; page++){
+                List<GiteaPullRequest> temp = getList(
+                        api()
+                                .literal("/repos")
+                                .path(UriTemplateBuilder.var("username"))
+                                .path(UriTemplateBuilder.var("name"))
+                                .literal("/pulls")
+                                .query(UriTemplateBuilder.var("state"), UriTemplateBuilder.var("page"))
+                                .build()
+                                .set("username", username)
+                                .set("name", name)
+                                .set("state", state)
+                                .set("page", page),
+                                GiteaPullRequest.class
+                );
+                if(temp.size()>0){
+                    requests.addAll(temp);
+                }else{
+                    return requests;
+                }
+            }
         } catch (GiteaHttpStatusException e) {
             // Gitea REST API returns HTTP Code 404 when pull requests or issues are disabled
             // Therefore we need to handle this case and return a empty List
@@ -759,19 +811,29 @@ class DefaultGiteaConnection implements GiteaConnection {
         }
 
         try {
-            return getList(
-                    api()
-                            .literal("/repos")
-                            .path(UriTemplateBuilder.var("username"))
-                            .path(UriTemplateBuilder.var("name"))
-                            .literal("/issues")
-                            .query(UriTemplateBuilder.var("state"))
-                            .build()
-                            .set("username", username)
-                            .set("name", name)
-                            .set("state", state),
-                    GiteaIssue.class
-            );
+            List<GiteaIssue> issues = new ArrayList<GiteaIssue>();
+            for (int page = 1; true; page++){
+                List<GiteaIssue> temp = getList(
+                        api()
+                                .literal("/repos")
+                                .path(UriTemplateBuilder.var("username"))
+                                .path(UriTemplateBuilder.var("name"))
+                                .literal("/issues")
+                                .query(UriTemplateBuilder.var("state"), UriTemplateBuilder.var("page"))
+                                .build()
+                                .set("username", username)
+                                .set("name", name)
+                                .set("state", state)
+                                .set("page", page),
+                                GiteaIssue.class
+                );
+                if(temp.size()>0){
+                    issues.addAll(temp);
+                }else{
+                    return issues;
+                }
+            }
+
         } catch (GiteaHttpStatusException e) {
             // Gitea REST API returns HTTP Code 404 when pull requests or issues are disabled
             // Therefore we need to handle this case and return a empty List
