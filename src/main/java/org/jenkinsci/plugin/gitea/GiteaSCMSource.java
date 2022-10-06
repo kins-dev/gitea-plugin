@@ -465,7 +465,10 @@ public class GiteaSCMSource extends AbstractGitSCMSource {
             }
         }
         List<Action> result = new ArrayList<>();
-        result.add(new ObjectMetadataAction(null, giteaRepository.getDescription(), giteaRepository.getWebsite()));
+        result.add(new ObjectMetadataAction(giteaRepository.getName(), giteaRepository.getDescription(), giteaRepository.getWebsite()));
+        if (StringUtils.isNotBlank(giteaRepository.getAvatarUrl())) {
+            result.add(new GiteaAvatar(giteaRepository.getAvatarUrl()));
+        }
         result.add(new GiteaLink("icon-gitea-repo", UriTemplate.buildFromTemplate(serverUrl)
                 .path(UriTemplateBuilder.var("owner"))
                 .path(UriTemplateBuilder.var("repository"))
@@ -952,7 +955,7 @@ public class GiteaSCMSource extends AbstractGitSCMSource {
 
         public List<SCMSourceTrait> getTraitsDefaults() {
             return Arrays.asList( // TODO finalize
-                    new BranchDiscoveryTrait(true, false),
+                    new BranchDiscoveryTrait(true, false, false),
                     new OriginPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE)),
                     new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
                             new ForkPullRequestDiscoveryTrait.TrustContributors())
